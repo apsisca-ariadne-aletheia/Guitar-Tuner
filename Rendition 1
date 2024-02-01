@@ -1,0 +1,62 @@
+import numpy as np
+import pyaudio
+import matplotlib.pyplot as plt
+
+def record_audio(duration, sample_rate):
+    p = pyaudio.PyAudio()
+
+    stream = p.open(format=pyaudio.paInt16,
+                    channels=1,
+                    rate=sample_rate,
+                    input=True,
+                    frames_per_buffer=1024)
+
+    print("Recording...")
+
+    frames = []
+    for i in range(int(sample_rate / 1024 * duration)):
+        data = stream.read(1024)
+        frames.append(data)
+
+    print("Finished recording.")
+
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    return np.frombuffer(b''.join(frames), dtype=np.int16)
+
+def calculate_fft(audio_signal, sample_rate):
+    n = len(audio_signal)
+    fft_result = np.fft.fft(audio_signal)
+    frequencies = np.fft.fftfreq(n, d=1/sample_rate)
+
+    return frequencies, np.abs(fft_result)
+
+def find_peak_frequency(frequencies, magnitudes, threshold=1000):
+    peak_freqs = frequencies[(magnitudes > threshold) & (frequencies > 0)]
+    return peak_freqs[0] if len(peak_freqs) > 0 else None
+
+def main():
+    duration = 3  # seconds
+    sample_rate = 44100  # Hz
+
+    audio_signal = record_audio(duration, sample_rate)
+    frequencies, magnitudes = calculate_fft(audio_signal, sample_rate)
+
+    plt.plot(frequencies, magnitudes)
+    plt.title("Frequency Spectrum")
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Magnitude")
+    plt.show()
+
+    peak_frequency = find_peak_frequency(frequencies, magnitudes)
+    
+    if peak_frequency:
+        print(f"Detected peak frequency: {peak_frequency} Hz")
+        # Add logic here to compare with target guitar string frequencies and determine if in tune
+    else:
+        print("No peak frequency detected.")
+
+if __name__ == "__main__":
+    main()
