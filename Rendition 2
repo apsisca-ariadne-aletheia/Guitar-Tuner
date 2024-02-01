@@ -1,0 +1,50 @@
+from pyo import *
+
+class GuitarTuner:
+    def __init__(self):
+        self.s = Server().boot()
+        self.gui = GUI(title="Guitar Tuner", resizable=False)
+
+        self.freq_display = TextBox(self.gui, text="Detected Frequency:", size=15, color="black")
+        self.tuning_display = TextBox(self.gui, text="Tuning:", size=15, color="black")
+
+        self.input = Input(chnl=0)
+        self.fft = FFT(self.input)
+        self.pitch = Pitch(self.input)
+
+        self.gui.ctrl(title="Threshold", value=5, min=1, max=10)
+
+        self.gui.add_control("Threshold", Slider(0, 100, mul=0.1, label="Pitch Detection Threshold"))
+
+        self.gui.show()
+
+        self.threshold = self.gui.getControl("Threshold").get()
+
+        self.s.start()
+
+        self.gui.setFunction(self.update_display)
+
+    def update_display(self):
+        freq = self.pitch.get()
+        self.freq_display.setValue(f"Detected Frequency: {freq:.2f} Hz")
+
+        tuning = self.detect_tuning(freq)
+        self.tuning_display.setValue(f"Tuning: {tuning}")
+
+    def detect_tuning(self, frequency):
+        # Example: Compare with common guitar string frequencies
+        standard_tunings = {
+            "E2": 82.41,
+            "A2": 110.00,
+            "D3": 146.83,
+            "G3": 196.00,
+            "B3": 246.94,
+            "E4": 329.63
+        }
+
+        closest_note = min(standard_tunings, key=lambda x: abs(standard_tunings[x] - frequency))
+        return closest_note
+
+if __name__ == "__main__":
+    tuner = GuitarTuner()
+    input("Press Enter to exit.")
